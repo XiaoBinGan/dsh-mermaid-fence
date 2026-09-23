@@ -18,11 +18,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/awesome-dsh-plugin/dsh-mermaid-fence.git"
+    "url": "git+https://github.com/XiaoBinGan/dsh-mermaid-fence.git"
   },
-  "homepage": "https://github.com/awesome-dsh-plugin/dsh-mermaid-fence#readme",
+  "homepage": "https://github.com/XiaoBinGan/dsh-mermaid-fence#readme",
   "bugs": {
-    "url": "https://github.com/awesome-dsh-plugin/dsh-mermaid-fence/issues"
+    "url": "https://github.com/XiaoBinGan/dsh-mermaid-fence/issues"
   },
   "exports": {
     ".": "./index.js",

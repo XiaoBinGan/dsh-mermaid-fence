@@ -26,8 +26,16 @@ graph TD
 
 ## Install
 
+Not on npm yet. Install from git:
+
 ```sh
-npm install dsh-mermaid-fence
+npm install github:XiaoBinGan/dsh-mermaid-fence
+```
+
+Or clone and point a local dependency at the directory:
+
+```sh
+git clone https://github.com/XiaoBinGan/dsh-mermaid-fence.git
 ```
 
 The built `client.js` is committed, so installing runs no build step. The
