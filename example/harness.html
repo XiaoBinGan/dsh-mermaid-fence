@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>dsh-mermaid-fence — browser harness</title>
+<style>
+  /* Stand-in for the host's design tokens. The real app declares these under
+     `body` and re-declares them under `body[data-ds-dark-theme]`; the plugin
+     only ever reads the resolved values. */
+  body {
+    --dsw-alias-bg-layer-1: #ffffff;
+    --dsw-alias-bg-layer-2: #f4f5f7;
+    --dsw-alias-label-primary: #1b1c1f;
+    --dsw-alias-label-secondary: #5a5d66;
+    --dsw-alias-border-l2: #d5d7dd;
+    --dsw-alias-brand-primary: #4d6bfe;
+    margin: 0; padding: 24px; background: var(--dsw-alias-bg-layer-1);
+    color: var(--dsw-alias-label-primary);
+    font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  body[data-ds-dark-theme] {
+    --dsw-alias-bg-layer-1: #17181c;
+    --dsw-alias-bg-layer-2: #202228;
+    --dsw-alias-label-primary: #eceef2;
+    --dsw-alias-label-secondary: #a2a6b0;
+    --dsw-alias-border-l2: #33363e;
+    --dsw-alias-brand-primary: #7f95ff;
+  }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+       color: var(--dsw-alias-label-secondary); margin: 28px 0 8px; }
+  /* The host's code block, reproduced closely enough for the plugin's contract:
+     a block, a banner carrying the infostring, and a content region. */
+  .md-code-block { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px;
+                   overflow: hidden; background: var(--dsw-alias-bg-layer-2); }
+  .banner { display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 10px; border-bottom: 1px solid var(--dsw-alias-border-l2); }
+  .infostring { font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+                color: var(--dsw-alias-label-secondary); }
+  [data-code-block-content] { padding: 10px; overflow: auto; }
+  pre { margin: 0; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  button { font: inherit; font-size: 12px; padding: 2px 8px; cursor: pointer; }
+  #toggle-theme { position: fixed; top: 12px; right: 12px; }
+</style>
+</head>
+<body>
+<button id="toggle-theme" type="button">toggle theme</button>
+
+<h2>Settled fence — should become a diagram</h2>
+<div class="centerContainer"><div class="markdown">
+  <div class="md-code-block">
+    <div class="banner">
+      <div data-code-block-banner><div class="infostring">mermaid</div></div>
+      <button type="button" id="host-copy">copy</button>
+    </div>
+    <div data-code-block-content><pre><code>graph TD
+  A[Start] --> B{Choice}
+  B -->|yes| C[Done]
+  B -->|no| D[Stop]</code></pre></div>
+  </div>
+</div></div>
+
+<h2>Streaming fence — must stay a code block</h2>
+<div class="centerContainer"><div class="markdown" data-streaming="true">
+  <div class="md-code-block">
+    <div class="banner">
+      <div data-code-block-banner><div class="infostring">mermaid</div></div>
+      <button type="button">copy</button>
+    </div>
+    <div data-code-block-content><pre><code>sequenceDiagram
+  A->>B: still being written</code></pre></div>
+  </div>
+</div></div>
+
+<h2>Invalid fence — must fall back with a readable error</h2>
+<div class="centerContainer"><div class="markdown">
+  <div class="md-code-block">
+    <div class="banner">
+      <div data-code-block-banner><div class="infostring">mermaid</div></div>
+      <button type="button">copy</button>
+    </div>
+    <div data-code-block-content><pre><code>this is not a diagram</code></pre></div>
+  </div>
+</div></div>
+
+<h2>Hostile label — must be sanitized by mermaid</h2>
+<div class="centerContainer"><div class="markdown">
+  <div class="md-code-block">
+    <div class="banner">
+      <div data-code-block-banner><div class="infostring">mermaid</div></div>
+      <button type="button">copy</button>
+    </div>
+    <div data-code-block-content><pre><code>graph TD
+  X["&lt;img src=x onerror=alert(1)&gt;"] --> Y</code></pre></div>
+  </div>
+</div></div>
+
+<script>
+// Capture the registration exactly as the host's boot facade does.
+window.__ModuleLoader__ = { mode: 'queue', pendingQueue: [], load(reg) { window.__registration__ = reg } }
+</script>
+<script src="../client.js"></script>
+<script>
+(async () => {
+  const registration = window.__registration__
+  if (registration === undefined) { window.__harnessResult__ = { error: 'client.js did not register' }; return }
+
+  // Materialize the factory the way the module table does.
+  const requireStub = specifier => { throw new Error('unexpected require: ' + specifier) }
+  requireStub.async = async specifier => { throw new Error('unexpected require.async: ' + specifier) }
+  const surface = registration.factory(requireStub)
+
+  const effects = []
+  const ctx = { effect: fn => { effects.push(fn) } }
+  surface.apply(ctx)
+
+  // Wait until the settled fence has a diagram and the invalid one has a notice.
+  const deadline = Date.now() + 25000
+  const done = () => document.querySelector('[data-dsh-mermaid-diagram] svg') !== null
+    && document.querySelector('[data-dsh-mermaid-error]') !== null
+  while (!done() && Date.now() < deadline) await new Promise(r => setTimeout(r, 50))
+
+  const settledBlock = document.querySelectorAll('.md-code-block')[0]
+  const streamingBlock = document.querySelectorAll('.md-code-block')[1]
+  const invalidBlock = document.querySelectorAll('.md-code-block')[2]
+  const hostileBlock = document.querySelectorAll('.md-code-block')[3]
+
+  const countIn = block => block.querySelectorAll('[data-dsh-mermaid-diagram]').length
+  const svg = settledBlock.querySelector('[data-dsh-mermaid-diagram] svg')
+  const box = svg === null ? null : svg.getBoundingClientRect()
+  const hostileSvg = hostileBlock.querySelector('[data-dsh-mermaid-diagram] svg')
+  const hostileMarkup = hostileSvg === null ? '' : hostileSvg.outerHTML
+
+  // The source toggle.
+  const toggle = settledBlock.querySelector('.dsh-mermaid-toggle')
+  const source = settledBlock.querySelector('.dsh-mermaid-source')
+  let toggleWorks = false
+  if (toggle !== null && source !== null) {
+    const before = source.hidden
+    toggle.click()
+    toggleWorks = before === true && source.hidden === false
+  }
+
+  window.__harnessResult__ = {
+    settledDiagramCount: countIn(settledBlock),
+    streamingDiagramCount: countIn(streamingBlock),
+    failedDiagramCount: countIn(invalidBlock),
+    errorNoticePresent: invalidBlock.querySelector('[data-dsh-mermaid-error]') !== null,
+    errorText: (invalidBlock.querySelector('[data-dsh-mermaid-error]') || {}).textContent || '',
+    svgWidth: box === null ? 0 : Math.round(box.width),
+    svgHeight: box === null ? 0 : Math.round(box.height),
+    nodeCount: svg === null ? 0 : svg.querySelectorAll('g.node').length,
+    edgeCount: svg === null ? 0 : svg.querySelectorAll('path.flowchart-link').length,
+    pathLength: svg === null ? 0 : Math.round((svg.querySelector('path.flowchart-link') || { getTotalLength: () => 0 }).getTotalLength()),
+    hostTokenRead: getComputedStyle(document.body).getPropertyValue('--dsw-alias-label-primary').trim().length > 0,
+    diagramTextColor: svg === null ? '' : getComputedStyle(svg.querySelector('text') || svg).fill,
+    hostCopyReachable: document.getElementById('host-copy') !== null
+      && document.getElementById('host-copy').getBoundingClientRect().height > 0,
+    sourceToggleWorks: toggleWorks,
+    hostileHasScript: /<script/i.test(hostileMarkup),
+    hostileHasImg: /<img/i.test(hostileMarkup),
+    hostileHasHandler: /\son\w+=/i.test(hostileMarkup),
+    effectCount: effects.length,
+  }
+
+  document.getElementById('toggle-theme').addEventListener('click', () => {
+    document.body.toggleAttribute('data-ds-dark-theme')
+  })
+})()
+</script>
+</body>
+</html>

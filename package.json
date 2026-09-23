@@ -1,0 +1,64 @@
+{
+  "name": "dsh-mermaid-fence",
+  "version": "0.1.0",
+  "description": "Render settled ```mermaid fences in the dsh Web GUI chat as SVG diagrams, with strict security and a safe code-block fallback.",
+  "license": "MIT",
+  "author": "dsh-mermaid-fence contributors",
+  "type": "module",
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "cordis-plugin",
+    "mermaid",
+    "diagram",
+    "markdown",
+    "web-gui"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awesome-dsh-plugin/dsh-mermaid-fence.git"
+  },
+  "homepage": "https://github.com/awesome-dsh-plugin/dsh-mermaid-fence#readme",
+  "bugs": {
+    "url": "https://github.com/awesome-dsh-plugin/dsh-mermaid-fence/issues"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-chat"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node --check client.js && node --check index.js",
+    "test": "node --test --test-timeout=180000 tests/render.test.mjs tests/arm.test.mjs tests/harden.test.mjs",
+    "test:browser": "node --test --test-timeout=180000 tests/browser.test.mjs",
+    "harness": "npx --yes serve .",
+    "prepack": "node scripts/build.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0",
+    "mermaid": "^11.17.2",
+    "playwright": "^1.49.0"
+  }
+}
